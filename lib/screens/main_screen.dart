@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -38,56 +39,75 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = MacosTheme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark ? [
-            const Color(0xFF1a1a1a),
-            const Color(0xFF2d2d2d),
-            const Color(0xFF1a1a1a),
-          ] : [
-            const Color(0xFFf5f7fa),
-            const Color(0xFFc3cfe2),
-            const Color(0xFFf5f7fa),
-          ],
+          colors:
+              isDark
+                  ? [const Color(0xFF282828), const Color(0xFF282828)]
+                  : [const Color(0xFFF2F2F2), const Color(0xFFF2F2F2)],
         ),
       ),
       child: MacosWindow(
         sidebar: Sidebar(
           minWidth: 200,
           builder: (context, controller) {
-            return BlurredBackground(
-              opacity: 0.3,
-              child: SidebarItems(
-                currentIndex: _selectedTab,
-                onChanged: (index) => setState(() => _selectedTab = index),
-                items: const [
-                  SidebarItem(
-                    leading: MacosIcon(Icons.home),
-                    label: Text('Enhance'),
-                  ),
-                  SidebarItem(
-                    leading: MacosIcon(Icons.history),
-                    label: Text('History'),
-                  ),
-                  SidebarItem(
-                    leading: MacosIcon(Icons.settings),
-                    label: Text('Settings'),
-                  ),
-                ],
-              ),
+            return SidebarItems(
+              currentIndex: _selectedTab,
+              onChanged: (index) => setState(() => _selectedTab = index),
+              itemSize: SidebarItemSize.large,
+              items: const [
+                SidebarItem(
+                  leading: MacosIcon(CupertinoIcons.sparkles),
+                  label: Text('Enhance'),
+                ),
+                SidebarItem(
+                  leading: MacosIcon(CupertinoIcons.time),
+                  label: Text('History'),
+                ),
+                SidebarItem(
+                  leading: MacosIcon(CupertinoIcons.gear),
+                  label: Text('Settings'),
+                ),
+              ],
             );
           },
         ),
-        child: IndexedStack(
-          index: _selectedTab,
+        child: MacosScaffold(
+          toolBar: ToolBar(
+            title: const Text(''),
+            titleWidth: 0.0,
+            actions: [
+              CustomToolbarItem(
+                inToolbarBuilder:
+                    (context) => SizedBox(
+                      width: 200,
+                      child: MacosSearchField(
+                        placeholder: 'Search prompts...',
+                        onChanged: (value) {
+                          // Handle search input changes
+                        },
+                      ),
+                    ),
+              ),
+            ],
+          ),
           children: [
-            _buildEnhanceTab(),
-            const HistoryScreen(),
-            const SettingsScreen(),
+            ContentArea(
+              builder: (context, scrollController) {
+                return IndexedStack(
+                  index: _selectedTab,
+                  children: [
+                    _buildEnhanceTab(),
+                    const HistoryScreen(),
+                    const SettingsScreen(),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -107,7 +127,8 @@ class _MainScreenState extends State<MainScreen> {
               _buildPromptInput(promptProvider),
               const SizedBox(height: 20),
               if (promptProvider.isEnhancing) _buildLoadingIndicator(),
-              if (promptProvider.error != null) _buildErrorMessage(promptProvider),
+              if (promptProvider.error != null)
+                _buildErrorMessage(promptProvider),
               const SizedBox(height: 20),
               Expanded(child: _buildEnhancementResults()),
             ],
@@ -118,24 +139,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Prompty',
-          style: MacosTheme.of(context).typography.largeTitle.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Enhance your prompts with AI-powered suggestions',
-          style: MacosTheme.of(context).typography.body.copyWith(
-            color: MacosColors.secondaryLabelColor,
-          ),
-        ),
-      ],
-    );
+    return const SizedBox.shrink(); // Remove the old header as it's now in the toolbar
   }
 
   Widget _buildPromptInput(PromptProvider promptProvider) {
@@ -145,7 +149,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           MacosTextField(
             controller: _promptController,
-            placeholder: 'Enter your prompt here...',
+            placeholder: '􀈃 Enter your prompt here...',
             maxLines: 4,
             style: MacosTheme.of(context).typography.body,
             decoration: BoxDecoration(
@@ -165,16 +169,19 @@ class _MainScreenState extends State<MainScreen> {
               ),
               PushButton(
                 controlSize: ControlSize.small,
-                onPressed: promptProvider.isEnhancing || _promptController.text.trim().isEmpty
-                    ? null
-                    : () => _enhancePrompt(promptProvider),
-                child: promptProvider.isEnhancing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: ProgressCircle(radius: 8),
-                      )
-                    : const Text('Enhance'),
+                onPressed:
+                    promptProvider.isEnhancing ||
+                            _promptController.text.trim().isEmpty
+                        ? null
+                        : () => _enhancePrompt(promptProvider),
+                child:
+                    promptProvider.isEnhancing
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: ProgressCircle(radius: 8),
+                        )
+                        : const Text('Enhance'),
               ),
             ],
           ),
@@ -210,9 +217,9 @@ class _MainScreenState extends State<MainScreen> {
           Expanded(
             child: Text(
               promptProvider.error!,
-              style: MacosTheme.of(context).typography.body.copyWith(
-                color: MacosColors.systemRedColor,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.body.copyWith(color: MacosColors.systemRedColor),
             ),
           ),
           MacosIconButton(
@@ -263,9 +270,9 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 8),
             Text(
               'Enter a prompt above and click "Enhance" to get started',
-              style: MacosTheme.of(context).typography.body.copyWith(
-                color: MacosColors.tertiaryLabelColor,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.body.copyWith(color: MacosColors.tertiaryLabelColor),
             ),
           ],
         ),
@@ -275,28 +282,33 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildEnhancementCards(Prompt prompt) {
     final styles = [
-      ('Professional', prompt.professionalVersion, EnhancementStyle.professional),
+      (
+        'Professional',
+        prompt.professionalVersion,
+        EnhancementStyle.professional,
+      ),
       ('Creative', prompt.creativeVersion, EnhancementStyle.creative),
       ('Technical', prompt.technicalVersion, EnhancementStyle.technical),
     ];
 
     return Row(
-      children: styles.map((style) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildEnhancementCard(
-              style.$1,
-              style.$2,
-              style.$3,
-            ),
-          ),
-        );
-      }).toList(),
+      children:
+          styles.map((style) {
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: _buildEnhancementCard(style.$1, style.$2, style.$3),
+              ),
+            );
+          }).toList(),
     );
   }
 
-  Widget _buildEnhancementCard(String title, String? content, EnhancementStyle style) {
+  Widget _buildEnhancementCard(
+    String title,
+    String? content,
+    EnhancementStyle style,
+  ) {
     return GlassCard(
       child: SizedBox(
         height: 300,
@@ -306,7 +318,7 @@ class _MainScreenState extends State<MainScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _getStyleColor(style).withOpacity(0.1),
+                color: _getStyleColor(style).withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
@@ -320,15 +332,13 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       Text(
                         title,
-                        style: MacosTheme.of(context).typography.headline.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: MacosTheme.of(context).typography.headline
+                            .copyWith(fontWeight: FontWeight.w600),
                       ),
                       Text(
                         style.description,
-                        style: MacosTheme.of(context).typography.caption1.copyWith(
-                          color: MacosColors.secondaryLabelColor,
-                        ),
+                        style: MacosTheme.of(context).typography.caption1
+                            .copyWith(color: MacosColors.secondaryLabelColor),
                       ),
                     ],
                   ),
@@ -343,21 +353,24 @@ class _MainScreenState extends State<MainScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: content != null
-                    ? SingleChildScrollView(
-                        child: Text(
-                          content,
-                          style: MacosTheme.of(context).typography.body,
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          'Enhancement will appear here',
-                          style: MacosTheme.of(context).typography.body.copyWith(
-                            color: MacosColors.tertiaryLabelColor,
+                child:
+                    content != null
+                        ? SingleChildScrollView(
+                          child: Text(
+                            content,
+                            style: MacosTheme.of(context).typography.body,
+                          ),
+                        )
+                        : Center(
+                          child: Text(
+                            'Enhancement will appear here',
+                            style: MacosTheme.of(
+                              context,
+                            ).typography.body.copyWith(
+                              color: MacosColors.tertiaryLabelColor,
+                            ),
                           ),
                         ),
-                      ),
               ),
             ),
           ],
