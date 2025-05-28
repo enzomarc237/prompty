@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:contextual_menu/contextual_menu.dart';
 import '../providers/prompt_provider.dart';
 import '../models/prompt.dart';
 
@@ -28,15 +29,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (context, promptProvider, child) {
         return Row(
           children: [
-            Expanded(
-              flex: 1,
-              child: _buildPromptList(promptProvider),
-            ),
+            Expanded(flex: 1, child: _buildPromptList(promptProvider)),
             const VerticalDivider(width: 1),
-            Expanded(
-              flex: 2,
-              child: _buildPromptDetail(),
-            ),
+            Expanded(flex: 2, child: _buildPromptDetail()),
           ],
         );
       },
@@ -48,9 +43,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: [
         _buildSearchHeader(promptProvider),
         Expanded(
-          child: promptProvider.isLoading
-              ? const Center(child: ProgressCircle())
-              : promptProvider.prompts.isEmpty
+          child:
+              promptProvider.isLoading
+                  ? const Center(child: ProgressCircle())
+                  : promptProvider.prompts.isEmpty
                   ? _buildEmptyList()
                   : _buildPromptListView(promptProvider),
         ),
@@ -63,9 +59,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: MacosTheme.of(context).canvasColor,
-        border: Border(
-          bottom: BorderSide(color: MacosColors.separatorColor),
-        ),
+        border: Border(bottom: BorderSide(color: MacosColors.separatorColor)),
       ),
       child: Column(
         children: [
@@ -90,9 +84,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   promptProvider.showFavoritesOnly
                       ? Icons.favorite
                       : Icons.favorite_border,
-                  color: promptProvider.showFavoritesOnly
-                      ? MacosColors.systemRedColor
-                      : MacosColors.secondaryLabelColor,
+                  color:
+                      promptProvider.showFavoritesOnly
+                          ? MacosColors.systemRedColor
+                          : MacosColors.secondaryLabelColor,
                 ),
                 onPressed: promptProvider.toggleFavoritesFilter,
               ),
@@ -123,9 +118,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const SizedBox(height: 8),
           Text(
             'Create your first prompt to see it here',
-            style: MacosTheme.of(context).typography.body.copyWith(
-              color: MacosColors.tertiaryLabelColor,
-            ),
+            style: MacosTheme.of(
+              context,
+            ).typography.body.copyWith(color: MacosColors.tertiaryLabelColor),
           ),
         ],
       ),
@@ -138,18 +133,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
       itemBuilder: (context, index) {
         final prompt = promptProvider.prompts[index];
         final isSelected = _selectedPrompt?.id == prompt.id;
-        
+
         return _buildPromptListItem(prompt, isSelected, promptProvider);
       },
     );
   }
 
-  Widget _buildPromptListItem(Prompt prompt, bool isSelected, PromptProvider promptProvider) {
+  Widget _buildPromptListItem(
+    Prompt prompt,
+    bool isSelected,
+    PromptProvider promptProvider,
+  ) {
     return Container(
       decoration: BoxDecoration(
-        color: isSelected
-            ? MacosColors.controlAccentColor.withOpacity(0.1)
-            : Colors.transparent,
+        color:
+            isSelected
+                ? MacosColors.controlAccentColor.withOpacity(0.1)
+                : Colors.transparent,
         border: Border(
           bottom: BorderSide(
             color: MacosColors.separatorColor.withOpacity(0.5),
@@ -158,6 +158,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       child: GestureDetector(
         onTap: () => setState(() => _selectedPrompt = prompt),
+        onSecondaryTapDown: (details) {
+          popUpContextualMenu(
+            Menu(
+              items: [
+                MenuItem(
+                  label:
+                      prompt.isFavorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites',
+                  onClick:
+                      (_) => _handlePromptAction(
+                        'favorite',
+                        prompt,
+                        promptProvider,
+                      ),
+                ),
+                MenuItem(
+                  label: 'Copy original',
+                  onClick:
+                      (_) =>
+                          _handlePromptAction('copy', prompt, promptProvider),
+                ),
+                MenuItem(
+                  label: 'Delete',
+                  onClick:
+                      (_) =>
+                          _handlePromptAction('delete', prompt, promptProvider),
+                ),
+              ],
+            ),
+          );
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
@@ -175,25 +207,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _formatDate(prompt.createdAt),
-                      style: MacosTheme.of(context).typography.caption1.copyWith(
-                        color: MacosColors.secondaryLabelColor,
-                      ),
+                      style: MacosTheme.of(context).typography.caption1
+                          .copyWith(color: MacosColors.secondaryLabelColor),
                     ),
                     if (prompt.tags.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 4,
-                        children: prompt.tags.take(2).map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: MacosColors.systemGrayColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            tag,
-                            style: MacosTheme.of(context).typography.caption2,
-                          ),
-                        )).toList(),
+                        children:
+                            prompt.tags
+                                .take(2)
+                                .map(
+                                  (tag) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: MacosColors.systemGrayColor
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style:
+                                          MacosTheme.of(
+                                            context,
+                                          ).typography.caption2,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                       ),
                     ],
                   ],
@@ -208,43 +252,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       color: MacosColors.systemRedColor,
                       size: 16,
                     ),
-                  PopupMenuButton<String>(
-                    icon: const MacosIcon(Icons.more_horiz),
-                    onSelected: (value) => _handlePromptAction(value, prompt, promptProvider),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'favorite',
-                        child: Row(
-                          children: [
-                            MacosIcon(
-                              prompt.isFavorite ? Icons.favorite_border : Icons.favorite,
+                  GestureDetector(
+                    onTapDown: (details) {
+                      popUpContextualMenu(
+                        Menu(
+                          items: [
+                            MenuItem(
+                              label:
+                                  prompt.isFavorite
+                                      ? 'Remove from favorites'
+                                      : 'Add to favorites',
+                              onClick:
+                                  (_) => _handlePromptAction(
+                                    'favorite',
+                                    prompt,
+                                    promptProvider,
+                                  ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(prompt.isFavorite ? 'Remove from favorites' : 'Add to favorites'),
+                            MenuItem(
+                              label: 'Copy original',
+                              onClick:
+                                  (_) => _handlePromptAction(
+                                    'copy',
+                                    prompt,
+                                    promptProvider,
+                                  ),
+                            ),
+                            MenuItem(
+                              label: 'Delete',
+                              onClick:
+                                  (_) => _handlePromptAction(
+                                    'delete',
+                                    prompt,
+                                    promptProvider,
+                                  ),
+                            ),
                           ],
                         ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            MacosIcon(Icons.copy),
-                            SizedBox(width: 8),
-                            Text('Copy original'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            MacosIcon(Icons.delete, color: MacosColors.systemRedColor),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: MacosColors.systemRedColor)),
-                          ],
-                        ),
-                      ),
-                    ],
+                      );
+                    },
+                    child: const MacosIcon(Icons.more_horiz),
                   ),
                 ],
               ),
@@ -302,9 +349,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             Text(
               'Prompt Details',
-              style: MacosTheme.of(context).typography.largeTitle.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.largeTitle.copyWith(fontWeight: FontWeight.w700),
             ),
             Text(
               'Created ${_formatDate(_selectedPrompt!.createdAt)}',
@@ -320,12 +367,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
               builder: (context, promptProvider, child) {
                 return MacosIconButton(
                   icon: MacosIcon(
-                    _selectedPrompt!.isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _selectedPrompt!.isFavorite 
-                        ? MacosColors.systemRedColor 
-                        : MacosColors.secondaryLabelColor,
+                    _selectedPrompt!.isFavorite
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color:
+                        _selectedPrompt!.isFavorite
+                            ? MacosColors.systemRedColor
+                            : MacosColors.secondaryLabelColor,
                   ),
-                  onPressed: () => promptProvider.toggleFavorite(_selectedPrompt!.id),
+                  onPressed:
+                      () => promptProvider.toggleFavorite(_selectedPrompt!.id),
                 );
               },
             ),
@@ -352,9 +403,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Text(
             'Original Prompt',
-            style: MacosTheme.of(context).typography.headline.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: MacosTheme.of(
+              context,
+            ).typography.headline.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
@@ -368,19 +419,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildEnhancementTabs() {
     final enhancements = [
-      ('Professional', _selectedPrompt!.professionalVersion, EnhancementStyle.professional),
+      (
+        'Professional',
+        _selectedPrompt!.professionalVersion,
+        EnhancementStyle.professional,
+      ),
       ('Creative', _selectedPrompt!.creativeVersion, EnhancementStyle.creative),
-      ('Technical', _selectedPrompt!.technicalVersion, EnhancementStyle.technical),
+      (
+        'Technical',
+        _selectedPrompt!.technicalVersion,
+        EnhancementStyle.technical,
+      ),
     ];
 
     return Column(
-      children: enhancements.map((enhancement) => 
-        _buildEnhancementSection(enhancement.$1, enhancement.$2, enhancement.$3)
-      ).toList(),
+      children:
+          enhancements
+              .map(
+                (enhancement) => _buildEnhancementSection(
+                  enhancement.$1,
+                  enhancement.$2,
+                  enhancement.$3,
+                ),
+              )
+              .toList(),
     );
   }
 
-  Widget _buildEnhancementSection(String title, String? content, EnhancementStyle style) {
+  Widget _buildEnhancementSection(
+    String title,
+    String? content,
+    EnhancementStyle style,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -408,15 +478,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   children: [
                     Text(
                       title,
-                      style: MacosTheme.of(context).typography.headline.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: MacosTheme.of(context).typography.headline
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                     Text(
                       style.description,
-                      style: MacosTheme.of(context).typography.caption1.copyWith(
-                        color: MacosColors.secondaryLabelColor,
-                      ),
+                      style: MacosTheme.of(context).typography.caption1
+                          .copyWith(color: MacosColors.secondaryLabelColor),
                     ),
                   ],
                 ),
@@ -430,17 +498,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: content != null
-                ? Text(
-                    content,
-                    style: MacosTheme.of(context).typography.body,
-                  )
-                : Text(
-                    'No ${title.toLowerCase()} enhancement available',
-                    style: MacosTheme.of(context).typography.body.copyWith(
-                      color: MacosColors.tertiaryLabelColor,
+            child:
+                content != null
+                    ? Text(
+                      content,
+                      style: MacosTheme.of(context).typography.body,
+                    )
+                    : Text(
+                      'No ${title.toLowerCase()} enhancement available',
+                      style: MacosTheme.of(context).typography.body.copyWith(
+                        color: MacosColors.tertiaryLabelColor,
+                      ),
                     ),
-                  ),
           ),
         ],
       ),
@@ -479,7 +548,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return '$hour:$minute';
   }
 
-  void _handlePromptAction(String action, Prompt prompt, PromptProvider promptProvider) {
+  void _handlePromptAction(
+    String action,
+    Prompt prompt,
+    PromptProvider promptProvider,
+  ) {
     switch (action) {
       case 'favorite':
         promptProvider.toggleFavorite(prompt.id);
@@ -501,27 +574,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _showDeleteConfirmation(Prompt prompt, PromptProvider promptProvider) {
     showMacosAlertDialog(
       context: context,
-      builder: (context) => MacosAlertDialog(
-        appIcon: const MacosIcon(Icons.warning, size: 64),
-        title: const Text('Delete Prompt'),
-        message: const Text('Are you sure you want to delete this prompt? This action cannot be undone.'),
-        primaryButton: PushButton(
-          controlSize: ControlSize.large,
-          onPressed: () {
-            Navigator.of(context).pop();
-            promptProvider.deletePrompt(prompt.id);
-            if (_selectedPrompt?.id == prompt.id) {
-              setState(() => _selectedPrompt = null);
-            }
-          },
-          child: const Text('Delete'),
-        ),
-        secondaryButton: PushButton(
-          controlSize: ControlSize.large,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ),
+      builder:
+          (context) => MacosAlertDialog(
+            appIcon: const MacosIcon(Icons.warning, size: 64),
+            title: const Text('Delete Prompt'),
+            message: const Text(
+              'Are you sure you want to delete this prompt? This action cannot be undone.',
+            ),
+            primaryButton: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () {
+                Navigator.of(context).pop();
+                promptProvider.deletePrompt(prompt.id);
+                if (_selectedPrompt?.id == prompt.id) {
+                  setState(() => _selectedPrompt = null);
+                }
+              },
+              child: const Text('Delete'),
+            ),
+            secondaryButton: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
     );
   }
 
