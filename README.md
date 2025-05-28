@@ -1,9 +1,3 @@
-# prompty
-
-A new Flutter project.
-
-## Getting Started
-
 # Prompty - AI-Powered Prompt Enhancement macOS App
 
 Prompty is a native macOS application built with Flutter that helps users improve their prompts by generating three enhanced versions in different styles: Professional, Creative, and Technical.
