@@ -5,8 +5,10 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import '../providers/prompt_provider.dart';
 import '../providers/settings_provider.dart';
-import '../models/prompt.dart';
+import '../models/prompt.dart' as prompt_model;
 import '../widgets/blurred_background.dart';
+import '../widgets/speech_to_text_button.dart';
+import '../utils/export_utils.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
 
@@ -55,24 +57,31 @@ class _MainScreenState extends State<MainScreen> {
         sidebar: Sidebar(
           minWidth: 200,
           builder: (context, controller) {
-            return SidebarItems(
-              currentIndex: _selectedTab,
-              onChanged: (index) => setState(() => _selectedTab = index),
-              itemSize: SidebarItemSize.large,
-              items: const [
-                SidebarItem(
-                  leading: MacosIcon(CupertinoIcons.sparkles),
-                  label: Text('Enhance'),
-                ),
-                SidebarItem(
-                  leading: MacosIcon(CupertinoIcons.time),
-                  label: Text('History'),
-                ),
-                SidebarItem(
-                  leading: MacosIcon(CupertinoIcons.gear),
-                  label: Text('Settings'),
-                ),
-              ],
+            return Container(
+              decoration: BoxDecoration(
+                color: MacosTheme.of(context).brightness == Brightness.dark
+                    ? MacosColors.controlBackgroundColor.darkColor
+                    : MacosColors.controlBackgroundColor.color, // This is a light gray, suitable.
+              ),
+              child: SidebarItems(
+                currentIndex: _selectedTab,
+                onChanged: (index) => setState(() => _selectedTab = index),
+                itemSize: SidebarItemSize.large,
+                items: const [
+                  SidebarItem(
+                    leading: MacosIcon(CupertinoIcons.sparkles),
+                    label: Text('Enhance'),
+                  ),
+                  SidebarItem(
+                    leading: MacosIcon(CupertinoIcons.time),
+                    label: Text('History'),
+                  ),
+                  SidebarItem(
+                    leading: MacosIcon(CupertinoIcons.gear),
+                    label: Text('Settings'),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -92,6 +101,15 @@ class _MainScreenState extends State<MainScreen> {
                         },
                       ),
                     ),
+              ),
+              ToolBarSpacer(),
+              ToolBarIconButton(
+                label: 'Filter',
+                icon: const MacosIcon(CupertinoIcons.slider_horizontal_3),
+                onPressed: () {
+                  // Handle filter button press
+                },
+                showLabel: false,
               ),
             ],
           ),
@@ -147,15 +165,37 @@ class _MainScreenState extends State<MainScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          MacosTextField(
-            controller: _promptController,
-            placeholder: '􀈃 Enter your prompt here...',
-            maxLines: 4,
-            style: MacosTheme.of(context).typography.body,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              MacosTextField(
+                controller: _promptController,
+                placeholder: '􀈃 Enter your prompt here...',
+                maxLines: 4,
+                style: MacosTheme.of(context).typography.body,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SpeechToTextButton(
+                  onSpeechResult: (text) {
+                    if (text.isNotEmpty) {
+                      setState(() {
+                        _promptController.text = text;
+                        // Move cursor to the end
+                        _promptController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _promptController.text.length),
+                        );
+                      });
+                    }
+                  },
+                  tooltip: 'Speak your prompt',
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -167,21 +207,33 @@ class _MainScreenState extends State<MainScreen> {
                   color: MacosColors.secondaryLabelColor,
                 ),
               ),
-              PushButton(
-                controlSize: ControlSize.small,
-                onPressed:
-                    promptProvider.isEnhancing ||
-                            _promptController.text.trim().isEmpty
-                        ? null
-                        : () => _enhancePrompt(promptProvider),
-                child:
-                    promptProvider.isEnhancing
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: ProgressCircle(radius: 8),
-                        )
-                        : const Text('Enhance'),
+              Row(
+                children: [
+                  MacosIconButton(
+                    icon: const MacosIcon(Icons.clear),
+                    onPressed: _promptController.text.isEmpty 
+                        ? null 
+                        : () => setState(() => _promptController.clear()),
+                    semanticLabel: 'Clear prompt',
+                  ),
+                  const SizedBox(width: 8),
+                  PushButton(
+                    controlSize: ControlSize.small,
+                    onPressed:
+                        promptProvider.isEnhancing ||
+                                _promptController.text.trim().isEmpty
+                            ? null
+                            : () => _enhancePrompt(promptProvider),
+                    child:
+                        promptProvider.isEnhancing
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: ProgressCircle(radius: 8),
+                            )
+                            : const Text('Enhance'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -280,15 +332,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildEnhancementCards(Prompt prompt) {
+  Widget _buildEnhancementCards(prompt_model.Prompt prompt) {
     final styles = [
       (
         'Professional',
         prompt.professionalVersion,
-        EnhancementStyle.professional,
+        prompt_model.EnhancementStyle.professional,
       ),
-      ('Creative', prompt.creativeVersion, EnhancementStyle.creative),
-      ('Technical', prompt.technicalVersion, EnhancementStyle.technical),
+      ('Creative', prompt.creativeVersion, prompt_model.EnhancementStyle.creative),
+      ('Technical', prompt.technicalVersion, prompt_model.EnhancementStyle.technical),
     ];
 
     return Row(
@@ -297,7 +349,7 @@ class _MainScreenState extends State<MainScreen> {
             return Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: _buildEnhancementCard(style.$1, style.$2, style.$3),
+                child: _buildEnhancementCard(style.$1, style.$2, style.$3, prompt),
               ),
             );
           }).toList(),
@@ -307,7 +359,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildEnhancementCard(
     String title,
     String? content,
-    EnhancementStyle style,
+    prompt_model.EnhancementStyle style,
+    prompt_model.Prompt prompt,
   ) {
     return GlassCard(
       child: SizedBox(
@@ -318,7 +371,7 @@ class _MainScreenState extends State<MainScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _getStyleColor(style).withValues(alpha: 0.1),
+                color: _getStyleColor(style).withOpacity(0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
@@ -343,9 +396,19 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                   if (content != null)
-                    MacosIconButton(
-                      icon: const MacosIcon(Icons.copy),
-                      onPressed: () => _copyToClipboard(content),
+                    Row(
+                      children: [
+                        MacosIconButton(
+                          icon: const MacosIcon(Icons.file_download_outlined),
+                          onPressed: () => _exportPromptVersion(prompt, style),
+                          semanticLabel: 'Export',
+                        ),
+                        MacosIconButton(
+                          icon: const MacosIcon(CupertinoIcons.doc_on_doc),
+                          onPressed: () => _copyToClipboard(content),
+                          semanticLabel: 'Copy to clipboard',
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -379,15 +442,16 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Color _getStyleColor(EnhancementStyle style) {
+  Color _getStyleColor(prompt_model.EnhancementStyle style) {
     switch (style) {
-      case EnhancementStyle.professional:
+      case prompt_model.EnhancementStyle.professional:
         return MacosColors.systemBlueColor;
-      case EnhancementStyle.creative:
+      case prompt_model.EnhancementStyle.creative:
         return MacosColors.systemPurpleColor;
-      case EnhancementStyle.technical:
+      case prompt_model.EnhancementStyle.technical:
         return MacosColors.systemGreenColor;
     }
+    return Colors.transparent;
   }
 
   void _enhancePrompt(PromptProvider promptProvider) {
@@ -405,9 +469,19 @@ class _MainScreenState extends State<MainScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Copied to clipboard!'),
-          duration: Duration(seconds: 1),
+          duration: const Duration(seconds: 1),
         ),
       );
+    }
+  }
+  
+  // Export a specific version of the prompt
+  Future<void> _exportPromptVersion(prompt_model.Prompt prompt, prompt_model.EnhancementStyle style) async {
+    if (!mounted) return;
+    
+    final success = await ExportUtils.exportPromptAsText(context, prompt, style);
+    if (success && mounted) {
+      ExportUtils.showExportSuccess(context);
     }
   }
 }

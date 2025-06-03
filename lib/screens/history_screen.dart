@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:contextual_menu/contextual_menu.dart';
 import '../providers/prompt_provider.dart';
-import '../models/prompt.dart';
+import '../models/prompt.dart' as prompt_model;
+import '../utils/export_utils.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,7 +17,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  Prompt? _selectedPrompt;
+  prompt_model.Prompt? _selectedPrompt;
 
   @override
   void dispose() {
@@ -56,46 +58,73 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildSearchHeader(PromptProvider promptProvider) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).canvasColor,
+        color: MacosTheme.of(context).brightness == Brightness.dark
+            ? MacosColors.controlBackgroundColor.darkColor
+            : MacosColors.controlBackgroundColor.color,
         border: Border(bottom: BorderSide(color: MacosColors.separatorColor)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          MacosSearchField(
-            controller: _searchController,
-            placeholder: 'Search prompts...',
-            onChanged: promptProvider.search,
+          Expanded(
+            child: Text(
+              '${promptProvider.prompts.length} prompts',
+              style: MacosTheme.of(context).typography.headline.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${promptProvider.prompts.length} prompts',
-                  style: MacosTheme.of(context).typography.caption1.copyWith(
-                    color: MacosColors.secondaryLabelColor,
-                  ),
-                ),
+          MacosIconButton(
+            icon: MacosIcon(
+              promptProvider.showFavoritesOnly
+                  ? CupertinoIcons.bookmark_fill
+                  : CupertinoIcons.bookmark,
+              color: promptProvider.showFavoritesOnly
+                  ? MacosColors.systemBlueColor
+                  : MacosColors.secondaryLabelColor,
               ),
-              MacosIconButton(
-                icon: MacosIcon(
-                  promptProvider.showFavoritesOnly
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  color:
-                      promptProvider.showFavoritesOnly
-                          ? MacosColors.systemRedColor
-                          : MacosColors.secondaryLabelColor,
-                ),
-                onPressed: promptProvider.toggleFavoritesFilter,
-              ),
-            ],
+            onPressed: promptProvider.toggleFavoritesFilter,
+            semanticLabel: 'Filter by bookmarks',
           ),
         ],
       ),
     );
+  }
+  
+  // Show export options dialog
+  void _showExportOptions(PromptProvider promptProvider) {
+    showMacosAlertDialog(
+      context: context,
+      builder: (context) => MacosAlertDialog(
+        appIcon: const Icon(Icons.file_download, size: 64),
+        title: const Text('Export Prompts'),
+        message: const Text('Choose an export option:'),
+        primaryButton: PushButton(
+          controlSize: ControlSize.large,
+          onPressed: () {
+            Navigator.of(context).pop();
+            _exportAllPrompts(promptProvider.prompts);
+          },
+          child: const Text('Export All Prompts'),
+        ),
+        secondaryButton: PushButton(
+          controlSize: ControlSize.large,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+  
+  // Export all prompts
+  Future<void> _exportAllPrompts(List<prompt_model.Prompt> prompts) async {
+    if (!mounted) return;
+    
+    final success = await ExportUtils.exportAllPrompts(context, prompts);
+    if (success && mounted) {
+      ExportUtils.showExportSuccess(context);
+    }
   }
 
   Widget _buildEmptyList() {
@@ -104,7 +133,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const MacosIcon(
-            Icons.history,
+            CupertinoIcons.doc_on_clipboard,
             size: 64,
             color: MacosColors.tertiaryLabelColor,
           ),
@@ -140,163 +169,153 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildPromptListItem(
-    Prompt prompt,
+    prompt_model.Prompt prompt,
     bool isSelected,
     PromptProvider promptProvider,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isSelected
-                ? MacosColors.controlAccentColor.withOpacity(0.1)
-                : Colors.transparent,
-        border: Border(
-          bottom: BorderSide(
-            color: MacosColors.separatorColor.withOpacity(0.5),
-          ),
-        ),
-      ),
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedPrompt = prompt),
-        onSecondaryTapDown: (details) {
-          popUpContextualMenu(
-            Menu(
-              items: [
-                MenuItem(
-                  label:
-                      prompt.isFavorite
-                          ? 'Remove from favorites'
-                          : 'Add to favorites',
-                  onClick:
-                      (_) => _handlePromptAction(
-                        'favorite',
-                        prompt,
-                        promptProvider,
-                      ),
-                ),
-                MenuItem(
-                  label: 'Copy original',
-                  onClick:
-                      (_) =>
-                          _handlePromptAction('copy', prompt, promptProvider),
-                ),
-                MenuItem(
-                  label: 'Delete',
-                  onClick:
-                      (_) =>
-                          _handlePromptAction('delete', prompt, promptProvider),
-                ),
-              ],
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      prompt.originalText,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: MacosTheme.of(context).typography.body,
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPrompt = prompt),
+      onSecondaryTapDown: (details) {
+        popUpContextualMenu(
+          Menu(
+            items: [
+              MenuItem(
+                label:
+                    prompt.isFavorite
+                        ? 'Remove from favorites'
+                        : 'Add to favorites',
+                onClick:
+                    (_) => _handlePromptAction(
+                      'favorite',
+                      prompt,
+                      promptProvider,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDate(prompt.createdAt),
-                      style: MacosTheme.of(context).typography.caption1
-                          .copyWith(color: MacosColors.secondaryLabelColor),
+              ),
+              MenuItem(
+                label: 'Copy original',
+                onClick:
+                    (_) => _handlePromptAction('copy', prompt, promptProvider),
+              ),
+              MenuItem.submenu(
+                label: 'Export',
+                submenu: Menu(
+                  items: [
+                    MenuItem(
+                      label: 'Export as JSON',
+                      onClick: (_) => _handlePromptAction('export_json', prompt, promptProvider),
                     ),
-                    if (prompt.tags.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 4,
-                        children:
-                            prompt.tags
-                                .take(2)
-                                .map(
-                                  (tag) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: MacosColors.systemGrayColor
-                                          .withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style:
-                                          MacosTheme.of(
-                                            context,
-                                          ).typography.caption2,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                      ),
-                    ],
+                    MenuItem(
+                      label: 'Export Professional Version',
+                      onClick: (_) => _handlePromptAction('export_professional', prompt, promptProvider),
+                    ),
+                    MenuItem(
+                      label: 'Export Creative Version',
+                      onClick: (_) => _handlePromptAction('export_creative', prompt, promptProvider),
+                    ),
+                    MenuItem(
+                      label: 'Export Technical Version',
+                      onClick: (_) => _handlePromptAction('export_technical', prompt, promptProvider),
+                    ),
                   ],
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (prompt.isFavorite)
-                    const MacosIcon(
-                      Icons.favorite,
-                      color: MacosColors.systemRedColor,
-                      size: 16,
-                    ),
-                  GestureDetector(
-                    onTapDown: (details) {
-                      popUpContextualMenu(
-                        Menu(
-                          items: [
-                            MenuItem(
-                              label:
-                                  prompt.isFavorite
-                                      ? 'Remove from favorites'
-                                      : 'Add to favorites',
-                              onClick:
-                                  (_) => _handlePromptAction(
-                                    'favorite',
-                                    prompt,
-                                    promptProvider,
-                                  ),
-                            ),
-                            MenuItem(
-                              label: 'Copy original',
-                              onClick:
-                                  (_) => _handlePromptAction(
-                                    'copy',
-                                    prompt,
-                                    promptProvider,
-                                  ),
-                            ),
-                            MenuItem(
-                              label: 'Delete',
-                              onClick:
-                                  (_) => _handlePromptAction(
-                                    'delete',
-                                    prompt,
-                                    promptProvider,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const MacosIcon(Icons.more_horiz),
-                  ),
-                ],
+              MenuItem(
+                label: 'Delete',
+                onClick:
+                    (_) => _handlePromptAction('delete', prompt, promptProvider),
               ),
             ],
           ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? MacosTheme.of(context).primaryColor.withOpacity(0.2)
+              : MacosTheme.of(context).brightness == Brightness.dark
+                  ? MacosColors.controlBackgroundColor.darkColor.withOpacity(0.5)
+                  : MacosColors.controlBackgroundColor.color.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(6.0),
+          border: isSelected
+              ? Border.all(color: MacosTheme.of(context).primaryColor, width: 1.5)
+              : Border.all(color: MacosColors.separatorColor.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    prompt.originalText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: MacosTheme.of(context).typography.body,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatDate(prompt.createdAt),
+                    style: MacosTheme.of(context).typography.caption1
+                        .copyWith(color: MacosColors.secondaryLabelColor),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (prompt.isFavorite)
+                  const MacosIcon(
+                    CupertinoIcons.heart_fill,
+                    color: MacosColors.systemRedColor,
+                    size: 16,
+                  ),
+                GestureDetector(
+                  onTapDown: (details) {
+                    popUpContextualMenu(
+                      Menu(
+                        items: [
+                          MenuItem(
+                            label:
+                                prompt.isFavorite
+                                    ? 'Remove from favorites'
+                                    : 'Add to favorites',
+                            onClick:
+                                (_) => _handlePromptAction(
+                                  'favorite',
+                                  prompt,
+                                  promptProvider,
+                                ),
+                          ),
+                          MenuItem(
+                            label: 'Copy original',
+                            onClick:
+                                (_) => _handlePromptAction(
+                                  'copy',
+                                  prompt,
+                                  promptProvider,
+                                ),
+                          ),
+                          MenuItem(
+                            label: 'Delete',
+                            onClick:
+                                (_) => _handlePromptAction(
+                                  'delete',
+                                  prompt,
+                                  promptProvider,
+                                ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const MacosIcon(CupertinoIcons.ellipsis),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -309,7 +328,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const MacosIcon(
-              Icons.select_all,
+              CupertinoIcons.doc_text_search,
               size: 64,
               color: MacosColors.tertiaryLabelColor,
             ),
@@ -368,8 +387,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 return MacosIconButton(
                   icon: MacosIcon(
                     _selectedPrompt!.isFavorite
-                        ? Icons.favorite
-                        : Icons.favorite_border,
+                        ? CupertinoIcons.heart_fill
+                        : CupertinoIcons.heart,
                     color:
                         _selectedPrompt!.isFavorite
                             ? MacosColors.systemRedColor
@@ -380,9 +399,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 );
               },
             ),
+            const SizedBox(width: 8),
             MacosIconButton(
-              icon: const MacosIcon(Icons.copy),
-              onPressed: () => _copyToClipboard(_selectedPrompt!.originalText),
+              icon: MacosIcon(
+                // Assuming a bookmarked property exists for _selectedPrompt
+                false // Placeholder for _selectedPrompt!.isBookmarked
+                    ? CupertinoIcons.bookmark_fill
+                    : CupertinoIcons.bookmark,
+                color: false // Placeholder for _selectedPrompt!.isBookmarked
+                    ? MacosColors.systemBlueColor
+                    : MacosColors.secondaryLabelColor,
+              ),
+              onPressed: () {
+                // Handle bookmark toggle
+                // promptProvider.toggleBookmark(_selectedPrompt!.id); // Uncomment when functionality is added
+              },
+              semanticLabel: 'Bookmark prompt',
+            ),
+            const SizedBox(width: 8),
+            MacosIconButton(
+              icon: const MacosIcon(CupertinoIcons.share),
+              onPressed: () {
+                // Handle share action
+              },
+              semanticLabel: 'Share prompt',
             ),
           ],
         ),
@@ -394,9 +434,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).canvasColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: MacosColors.separatorColor),
+        color: MacosTheme.of(context).brightness == Brightness.dark
+            ? MacosColors.controlBackgroundColor.darkColor
+            : MacosColors.controlBackgroundColor.color,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: MacosColors.separatorColor.withOpacity(0.7), width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,14 +464,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       (
         'Professional',
         _selectedPrompt!.professionalVersion,
-        EnhancementStyle.professional,
+        prompt_model.EnhancementStyle.professional,
       ),
-      ('Creative', _selectedPrompt!.creativeVersion, EnhancementStyle.creative),
-      (
-        'Technical',
-        _selectedPrompt!.technicalVersion,
-        EnhancementStyle.technical,
-      ),
+      ('Creative', _selectedPrompt!.creativeVersion, prompt_model.EnhancementStyle.creative),
+      ('Technical', _selectedPrompt!.technicalVersion, prompt_model.EnhancementStyle.technical),
     ];
 
     return Column(
@@ -449,14 +487,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildEnhancementSection(
     String title,
     String? content,
-    EnhancementStyle style,
+    prompt_model.EnhancementStyle style,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: MacosTheme.of(context).canvasColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: MacosColors.separatorColor),
+        color: MacosTheme.of(context).brightness == Brightness.dark
+            ? MacosColors.controlBackgroundColor.darkColor
+            : MacosColors.controlBackgroundColor.color,
+        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(color: MacosColors.separatorColor.withOpacity(0.7), width: 1.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -490,41 +530,51 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 if (content != null)
                   MacosIconButton(
-                    icon: const MacosIcon(Icons.copy),
+                    icon: const MacosIcon(CupertinoIcons.doc_on_doc),
                     onPressed: () => _copyToClipboard(content),
+                    semanticLabel: 'Copy to clipboard',
                   ),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child:
-                content != null
-                    ? Text(
-                      content,
-                      style: MacosTheme.of(context).typography.body,
-                    )
-                    : Text(
-                      'No ${title.toLowerCase()} enhancement available',
-                      style: MacosTheme.of(context).typography.body.copyWith(
-                        color: MacosColors.tertiaryLabelColor,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child:
+                  content != null
+                      ? SingleChildScrollView(
+                        child: Text(
+                          content,
+                          style: MacosTheme.of(context).typography.body,
+                        ),
+                      )
+                      : Center(
+                        child: Text(
+                          'Enhancement will appear here',
+                          style: MacosTheme.of(
+                            context,
+                          ).typography.body.copyWith(
+                            color: MacosColors.tertiaryLabelColor,
+                          ),
+                        ),
                       ),
-                    ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Color _getStyleColor(EnhancementStyle style) {
+  Color _getStyleColor(prompt_model.EnhancementStyle style) {
     switch (style) {
-      case EnhancementStyle.professional:
+      case prompt_model.EnhancementStyle.professional:
         return MacosColors.systemBlueColor;
-      case EnhancementStyle.creative:
+      case prompt_model.EnhancementStyle.creative:
         return MacosColors.systemPurpleColor;
-      case EnhancementStyle.technical:
+      case prompt_model.EnhancementStyle.technical:
         return MacosColors.systemGreenColor;
     }
+    return Colors.transparent;
   }
 
   String _formatDate(DateTime date) {
@@ -550,7 +600,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   void _handlePromptAction(
     String action,
-    Prompt prompt,
+    prompt_model.Prompt prompt,
     PromptProvider promptProvider,
   ) {
     switch (action) {
@@ -563,52 +613,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
         }
         break;
       case 'copy':
-        _copyToClipboard(prompt.originalText);
+        Clipboard.setData(ClipboardData(text: prompt.originalText));
+        break;
+      case 'export_json': 
+        ExportUtils.exportPrompt(context, prompt);
+        break;
+      case 'export_professional':
+        ExportUtils.exportPromptAsText(context, prompt, prompt_model.EnhancementStyle.professional);
+        break;
+      case 'export_creative':
+        ExportUtils.exportPromptAsText(context, prompt, prompt_model.EnhancementStyle.creative);
+        break;
+      case 'export_technical':
+        ExportUtils.exportPromptAsText(context, prompt, prompt_model.EnhancementStyle.technical);
         break;
       case 'delete':
-        _showDeleteConfirmation(prompt, promptProvider);
+        promptProvider.deletePrompt(prompt.id);
+        setState(() {
+          _selectedPrompt = null;
+        });
         break;
     }
   }
 
-  void _showDeleteConfirmation(Prompt prompt, PromptProvider promptProvider) {
-    showMacosAlertDialog(
-      context: context,
-      builder:
-          (context) => MacosAlertDialog(
-            appIcon: const MacosIcon(Icons.warning, size: 64),
-            title: const Text('Delete Prompt'),
-            message: const Text(
-              'Are you sure you want to delete this prompt? This action cannot be undone.',
-            ),
-            primaryButton: PushButton(
-              controlSize: ControlSize.large,
-              onPressed: () {
-                Navigator.of(context).pop();
-                promptProvider.deletePrompt(prompt.id);
-                if (_selectedPrompt?.id == prompt.id) {
-                  setState(() => _selectedPrompt = null);
-                }
-              },
-              child: const Text('Delete'),
-            ),
-            secondaryButton: PushButton(
-              controlSize: ControlSize.large,
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-          ),
-    );
-  }
-
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    // Show a brief success indicator using macOS native toast
+    // Show a brief success indicator
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Copied to clipboard!'),
-          duration: Duration(seconds: 1),
+          duration: const Duration(seconds: 1),
         ),
       );
     }

@@ -76,15 +76,15 @@ class AIService {
     }
   }
 
-  Future<Map<String, String>> enhancePrompt(String originalPrompt, String apiKey, {String provider = 'openai', String model = 'gpt-3.5-turbo'}) async {
+  Future<Map<String, String>> enhancePrompt(String originalPrompt, String apiKey, {String provider = 'openai', String model = 'gpt-3.5-turbo', EnhancementStyle? style}) async {
     try {
       switch (provider.toLowerCase()) {
         case 'openai':
-          return await _enhanceWithOpenAI(originalPrompt, apiKey, model);
+          return await _enhanceWithOpenAI(originalPrompt, apiKey, model, style);
         case 'openrouter':
-          return await _enhanceWithOpenRouter(originalPrompt, apiKey, model);
+          return await _enhanceWithOpenRouter(originalPrompt, apiKey, model, style);
         case 'gemini':
-          return await _enhanceWithGemini(originalPrompt, apiKey, model);
+          return await _enhanceWithGemini(originalPrompt, apiKey, model, style);
         default:
           throw Exception('Unsupported AI provider: $provider');
       }
@@ -168,12 +168,14 @@ class AIService {
     }
   }
 
-  Future<Map<String, String>> _enhanceWithOpenAI(String originalPrompt, String apiKey, String model) async {
+  Future<Map<String, String>> _enhanceWithOpenAI(String originalPrompt, String apiKey, String model, EnhancementStyle? selectedStyle) async {
     const String baseUrl = 'https://api.openai.com/v1/chat/completions';
     
     final Map<String, String> enhancements = {};
     
-    for (final style in EnhancementStyle.values) {
+    final stylesToEnhance = selectedStyle != null ? [selectedStyle] : EnhancementStyle.values;
+
+    for (final style in stylesToEnhance) {
       final response = await _dio.post(
         baseUrl,
         options: Options(
@@ -211,12 +213,14 @@ class AIService {
     return enhancements;
   }
 
-  Future<Map<String, String>> _enhanceWithOpenRouter(String originalPrompt, String apiKey, String model) async {
+  Future<Map<String, String>> _enhanceWithOpenRouter(String originalPrompt, String apiKey, String model, EnhancementStyle? selectedStyle) async {
     const String baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
     
     final Map<String, String> enhancements = {};
     
-    for (final style in EnhancementStyle.values) {
+    final stylesToEnhance = selectedStyle != null ? [selectedStyle] : EnhancementStyle.values;
+
+    for (final style in stylesToEnhance) {
       final response = await _dio.post(
         baseUrl,
         options: Options(
@@ -256,12 +260,14 @@ class AIService {
     return enhancements;
   }
 
-  Future<Map<String, String>> _enhanceWithGemini(String originalPrompt, String apiKey, String model) async {
+  Future<Map<String, String>> _enhanceWithGemini(String originalPrompt, String apiKey, String model, EnhancementStyle? selectedStyle) async {
     final String baseUrl = 'https://generativelanguage.googleapis.com/v1/models/$model:generateContent';
     
     final Map<String, String> enhancements = {};
     
-    for (final style in EnhancementStyle.values) {
+    final stylesToEnhance = selectedStyle != null ? [selectedStyle] : EnhancementStyle.values;
+
+    for (final style in stylesToEnhance) {
       final response = await _dio.post(
         '$baseUrl?key=$apiKey',
         options: Options(

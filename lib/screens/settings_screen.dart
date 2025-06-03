@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../utils/export_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -64,16 +65,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Text(
           'Settings',
-          style: MacosTheme.of(context).typography.largeTitle.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: MacosTheme.of(
+            context,
+          ).typography.largeTitle.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Configure Prompty to suit your preferences',
-          style: MacosTheme.of(context).typography.body.copyWith(
-            color: MacosColors.secondaryLabelColor,
-          ),
+          style: MacosTheme.of(
+            context,
+          ).typography.body.copyWith(color: MacosColors.secondaryLabelColor),
         ),
       ],
     );
@@ -120,15 +121,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(
               'API Key',
-              style: MacosTheme.of(context).typography.body.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.body.copyWith(fontWeight: FontWeight.w500),
             ),
             MacosIconButton(
               icon: MacosIcon(
                 _isApiKeyVisible ? Icons.visibility_off : Icons.visibility,
               ),
-              onPressed: () => setState(() => _isApiKeyVisible = !_isApiKeyVisible),
+              onPressed:
+                  () => setState(() => _isApiKeyVisible = !_isApiKeyVisible),
             ),
           ],
         ),
@@ -146,12 +148,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               });
             }
           },
-          suffix: _apiKeyController.text.isNotEmpty
-              ? MacosIconButton(
-                  icon: const MacosIcon(Icons.check_circle, color: MacosColors.systemGreenColor),
-                  onPressed: null,
-                )
-              : null,
+          suffix:
+              _apiKeyController.text.isNotEmpty
+                  ? MacosIconButton(
+                    icon: const MacosIcon(
+                      Icons.check_circle,
+                      color: MacosColors.systemGreenColor,
+                    ),
+                    onPressed: null,
+                  )
+                  : null,
         ),
       ],
     );
@@ -166,9 +172,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(
               'Model',
-              style: MacosTheme.of(context).typography.body.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.body.copyWith(fontWeight: FontWeight.w500),
             ),
             if (settingsProvider.isLoadingModels)
               const SizedBox(
@@ -184,7 +190,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        if (settingsProvider.availableModels.isEmpty && !settingsProvider.isLoadingModels)
+        if (settingsProvider.availableModels.isEmpty &&
+            !settingsProvider.isLoadingModels)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -209,20 +216,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           )
         else
           MacosPopupButton<String>(
-            value: settingsProvider.availableModels.any((m) => m.id == settingsProvider.settings.selectedModel)
-                ? settingsProvider.settings.selectedModel
-                : settingsProvider.availableModels.isNotEmpty
+            value:
+                settingsProvider.availableModels.any(
+                      (m) => m.id == settingsProvider.settings.selectedModel,
+                    )
+                    ? settingsProvider.settings.selectedModel
+                    : settingsProvider.availableModels.isNotEmpty
                     ? settingsProvider.availableModels.first.id
                     : settingsProvider.settings.selectedModel,
-            onChanged: settingsProvider.availableModels.isNotEmpty
-                ? (value) => settingsProvider.updateSelectedModel(value!)
-                : null,
-            items: settingsProvider.availableModels.map((model) {
-              return MacosPopupMenuItem<String>(
-                value: model.id,
-                child: Text(model.name),
-              );
-            }).toList(),
+            onChanged:
+                settingsProvider.availableModels.isNotEmpty
+                    ? (value) => settingsProvider.updateSelectedModel(value!)
+                    : null,
+            items:
+                settingsProvider.availableModels.map((model) {
+                  return MacosPopupMenuItem<String>(
+                    value: model.id,
+                    child: Text(model.name),
+                  );
+                }).toList(),
           ),
       ],
     );
@@ -244,67 +256,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildBehaviorSection(SettingsProvider settingsProvider) {
-    return _buildSection(
-      'Behavior',
-      'Configure how the app behaves',
-      [
-        _buildToggle(
-          'Start Minimized',
-          'Launch the app minimized to the system tray',
-          settingsProvider.settings.startMinimized,
-          settingsProvider.updateStartMinimized,
-        ),
-        const SizedBox(height: 16),
-        _buildToggle(
-          'Launch at Startup',
-          'Automatically start Prompty when you log in',
-          settingsProvider.settings.launchAtStartup,
-          settingsProvider.updateLaunchAtStartup,
-        ),
-        const SizedBox(height: 16),
-        _buildToggle(
-          'Notifications',
-          'Show notifications for completed enhancements',
-          settingsProvider.settings.enableNotifications,
-          settingsProvider.updateEnableNotifications,
-        ),
-      ],
-    );
+    return _buildSection('Behavior', 'Configure how the app behaves', [
+      _buildToggle(
+        'Start Minimized',
+        'Launch the app minimized to the system tray',
+        settingsProvider.settings.startMinimized,
+        settingsProvider.updateStartMinimized,
+      ),
+      const SizedBox(height: 16),
+      _buildToggle(
+        'Launch at Startup',
+        'Automatically start Prompty when you log in',
+        settingsProvider.settings.launchAtStartup,
+        settingsProvider.updateLaunchAtStartup,
+      ),
+      const SizedBox(height: 16),
+      _buildToggle(
+        'Notifications',
+        'Show notifications for completed enhancements',
+        settingsProvider.settings.enableNotifications,
+        settingsProvider.updateEnableNotifications,
+      ),
+    ]);
   }
 
   Widget _buildAboutSection() {
-    return _buildSection(
-      'About',
-      'Information about Prompty',
-      [
-        _buildInfoRow('Version', '1.0.0'),
-        const SizedBox(height: 12),
-        _buildInfoRow('Build', '2024.1'),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: PushButton(
-                controlSize: ControlSize.large,
-                onPressed: _resetSettings,
-                child: const Text('Reset Settings'),
-              ),
+    return _buildSection('About', 'Information about Prompty', [
+      _buildInfoRow('Version', '1.0.0'),
+      const SizedBox(height: 12),
+      _buildInfoRow('Build', '2024.1'),
+      const SizedBox(height: 20),
+      Row(
+        children: [
+          Expanded(
+            child: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: _resetSettings,
+              child: const Text('Reset Settings'),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: PushButton(
-                controlSize: ControlSize.large,
-                onPressed: _exportSettings,
-                child: const Text('Export Settings'),
-              ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: _exportSettings,
+              child: const Text('Export Settings'),
             ),
-          ],
-        ),
-      ],
-    );
+          ),
+        ],
+      ),
+    ]);
   }
 
-  Widget _buildSection(String title, String description, List<Widget> children) {
+  Widget _buildSection(
+    String title,
+    String description,
+    List<Widget> children,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: MacosTheme.of(context).canvasColor,
@@ -318,9 +326,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(
               title,
-              style: MacosTheme.of(context).typography.headline.copyWith(
-              fontWeight: FontWeight.w600,
-              ),
+              style: MacosTheme.of(
+                context,
+              ).typography.headline.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
@@ -349,18 +357,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Text(
           label,
-          style: MacosTheme.of(context).typography.body.copyWith(
-          fontWeight: FontWeight.w500,
-          ),
+          style: MacosTheme.of(
+            context,
+          ).typography.body.copyWith(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         MacosPopupButton<T>(
           value: value,
           onChanged: onChanged,
-          items: items.map((item) => MacosPopupMenuItem(
-            value: item,
-            child: Text(displayNames?[item] ?? item.toString()),
-          )).toList(),
+          items:
+              items
+                  .map(
+                    (item) => MacosPopupMenuItem(
+                      value: item,
+                      child: Text(displayNames?[item] ?? item.toString()),
+                    ),
+                  )
+                  .toList(),
         ),
       ],
     );
@@ -381,9 +394,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 title,
-                style: MacosTheme.of(context).typography.body.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: MacosTheme.of(
+                  context,
+                ).typography.body.copyWith(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 2),
               Text(
@@ -395,10 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        MacosSwitch(
-          value: value,
-          onChanged: onChanged,
-        ),
+        MacosSwitch(value: value, onChanged: onChanged),
       ],
     );
   }
@@ -407,15 +417,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: MacosTheme.of(context).typography.body,
-        ),
+        Text(label, style: MacosTheme.of(context).typography.body),
         Text(
           value,
-          style: MacosTheme.of(context).typography.body.copyWith(
-            color: MacosColors.secondaryLabelColor,
-          ),
+          style: MacosTheme.of(
+            context,
+          ).typography.body.copyWith(color: MacosColors.secondaryLabelColor),
         ),
       ],
     );
@@ -424,53 +431,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildHelpText(String text) {
     return Text(
       text,
-      style: MacosTheme.of(context).typography.caption2.copyWith(
-        color: MacosColors.tertiaryLabelColor,
-      ),
+      style: MacosTheme.of(
+        context,
+      ).typography.caption2.copyWith(color: MacosColors.tertiaryLabelColor),
     );
   }
 
   void _resetSettings() {
     showMacosAlertDialog(
       context: context,
-      builder: (context) => MacosAlertDialog(
-        appIcon: const MacosIcon(Icons.warning, size: 64),
-        title: const Text('Reset Settings'),
-        message: const Text(
-          'Are you sure you want to reset all settings to their default values? This action cannot be undone.',
-        ),
-        primaryButton: PushButton(
-          controlSize: ControlSize.large,
-          onPressed: () {
-            Navigator.of(context).pop();
-            context.read<SettingsProvider>().resetSettings();
-            _apiKeyController.clear();
-          },
-          child: const Text('Reset'),
-        ),
-        secondaryButton: PushButton(
-          controlSize: ControlSize.large,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ),
+      builder:
+          (context) => MacosAlertDialog(
+            appIcon: const MacosIcon(Icons.warning, size: 64),
+            title: const Text('Reset Settings'),
+            message: const Text(
+              'Are you sure you want to reset all settings to their default values? This action cannot be undone.',
+            ),
+            primaryButton: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.read<SettingsProvider>().resetSettings();
+                _apiKeyController.clear();
+              },
+              child: const Text('Reset'),
+            ),
+            secondaryButton: PushButton(
+              controlSize: ControlSize.large,
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
     );
   }
 
-  void _exportSettings() {
-    // TODO: Implement settings export functionality
-    showMacosAlertDialog(
-      context: context,
-      builder: (context) => MacosAlertDialog(
-        appIcon: const MacosIcon(Icons.info, size: 64),
-        title: const Text('Export Settings'),
-        message: const Text('Settings export functionality will be available in a future update.'),
-        primaryButton: PushButton(
-          controlSize: ControlSize.large,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
-        ),
-      ),
-    );
+  Future<void> _exportSettings() async {
+    final settingsProvider = context.read<SettingsProvider>();
+    final settings = settingsProvider.settings;
+
+    // Convert settings to a map
+    final Map<String, dynamic> settingsMap = {
+      'apiProvider': settings.apiProvider,
+      'selectedModel': settings.selectedModel,
+      'darkMode': settings.darkMode,
+      'startMinimized': settings.startMinimized,
+      'launchAtStartup': settings.launchAtStartup,
+      'enableNotifications': settings.enableNotifications,
+      'defaultCategory': settings.defaultCategory,
+      'customStyles': settings.customStyles,
+      // Don't include API key for security reasons
+      'apiKey': '**********',
+    };
+
+    final success = await ExportUtils.exportSettings(context, settingsMap);
+    if (success && mounted) {
+      ExportUtils.showExportSuccess(context);
+    }
   }
 }

@@ -5,24 +5,28 @@ Prompty is a native macOS application built with Flutter that helps users improv
 ## Features
 
 ### Core Functionality
+
 - **Prompt Enhancement**: Takes user input and generates three improved versions
   - Professional/Formal style: Clear, business-oriented language
-  - Creative/Brainstorming style: Imaginative and innovative approaches  
+  - Creative/Brainstorming style: Imaginative and innovative approaches
   - Technical/Structured style: Precise, detailed specifications
-                                                                                                                                                                              
+
 ### User Interface
+
 - **Native macOS Design**: Built with `macos_ui` for authentic macOS look and feel
 - **Multi-Tab Interface**: Enhance, History, and Settings screens
 - **Dark/Light Mode Support**: Follows system appearance preferences
 - **Responsive Layout**: Clean, minimal design optimized for productivity
 
 ### Data Management
+
 - **Local SQLite Database**: Stores prompts and enhancements locally
 - **Search & Filter**: Find prompts by content, favorites, or date
 - **Favorites System**: Mark important prompts for quick access
 - **History Tracking**: Keep track of all enhanced prompts with timestamps
 
 ### System Integration
+
 - **Clipboard Support**: Copy enhanced prompts with one click
 - **Window Management**: Native macOS window controls and behavior
 - **System Tray**: (Planned) Quick access from menu bar
@@ -52,11 +56,13 @@ lib/
 ## Setup & Installation
 
 ### Prerequisites
+
 - macOS 10.15 or later
 - Flutter SDK
 - Xcode (for building)
 
 ### Configuration
+
 1. Clone the repository
 2. Run `flutter pub get` to install dependencies
 3. Configure your AI API key in Settings:
@@ -64,6 +70,7 @@ lib/
    - Gemini: Get API key from Google AI Studio
 
 ### Building
+
 ```bash
 flutter build macos --release
 ```
@@ -78,6 +85,7 @@ flutter build macos --release
 ## API Integration
 
 The app supports multiple AI providers:
+
 - **OpenAI GPT**: Uses gpt-3.5-turbo for prompt enhancement
 - **Google Gemini**: Uses gemini-pro model for enhancement
 
@@ -86,6 +94,7 @@ Each style uses specialized system prompts to guide the AI in generating appropr
 ## Roadmap
 
 See [ROADMAP_MERGED.md](ROADMAP_MERGED.md) for detailed development phases and planned features including:
+
 - System tray popup modal
 - Speech-to-text input
 - Community sharing platform

@@ -9,17 +9,17 @@ Prompty is a native macOS application that helps users improve their prompts. Th
 ### Phase 1 - Basic User Interface (2-3 weeks)
 
 - [x] Initial project configuration
-- [ ] Main interface:
+- [x] Main interface:
   - Initial prompt input area
   - 3 result areas for different styles
   - Enhancement button
-- [ ] Consistent macOS theme
-- [ ] Use [tray_manager](https://github.com/leanflutter/tray_manager) for menu bar icon
-- [ ] Use [window_manager](https://github.com/leanflutter/window_manager) for window management (border, size, position, etc.):
+- [x] Consistent macOS theme
+- [x] Use [tray_manager](https://github.com/leanflutter/tray_manager) for menu bar icon
+- [x] Use [window_manager](https://github.com/leanflutter/window_manager) for window management (border, size, position, etc.):
   - Main window with custom border and size
   - Window positioning under menu bar with popup look (no borders)
   - Handle close and minimize events
-- [ ] Use most [LeanFlutter](https://github.com/leanflutter) packages for basic functionality implementation:
+- [x] Use most [LeanFlutter](https://github.com/leanflutter) packages for basic functionality implementation:
   - Menu bar
   - Window management
   - Native notifications

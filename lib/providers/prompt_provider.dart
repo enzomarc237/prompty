@@ -40,7 +40,7 @@ class PromptProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> enhancePrompt(String originalText) async {
+  Future<void> enhancePrompt(String originalText, {EnhancementStyle? style}) async {
     _isEnhancing = true;
     _error = null;
     notifyListeners();
@@ -57,6 +57,7 @@ class PromptProvider extends ChangeNotifier {
         settings.apiKey,
         provider: settings.apiProvider,
         model: settings.selectedModel,
+        style: style, // Pass the selected style
       );
 
       final prompt = Prompt(

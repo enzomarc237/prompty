@@ -28,5 +28,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Prompty needs speech recognition access to enhance your prompts with voice input.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Prompty needs microphone access to enable voice input for your prompts.</string>
 </dict>
 </plist>
